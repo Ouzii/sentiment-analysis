@@ -205,7 +205,7 @@ def classify(lang, dims):
 
     for k, v in models.items():
         print('***', k, '***')
-        if k is 'Multilayer Perceptron':
+        if k == 'Multilayer Perceptron':
             scaler = StandardScaler(with_mean=False) # Scale dataset for MLP model
             scaler.fit(trainset)
 
@@ -220,7 +220,10 @@ def classify(lang, dims):
 
         stratified_cross_validate(model, dims, lang) # Use stratified cross-validation
         traintestsplit(model, dims, lang) # Use the in-built Scikit-learn train_test_split function
-
+    import pickle
+    with open('saved_model.pkl', 'wb') as file:
+        pickle.dump(models['Logistic Regression'], file)
+    file.close()
 
 def main():
 
