@@ -18,4 +18,6 @@ To run a prediction on csv files:
     - $dimension: bin/multi
     - $column: Index of the column in which the data resides in csv files. Starts from 0.
     - $as_strings: Define if the output should be numerical or string values.
-4. Outputs of the prediction will be written in output-folder 
+4. Outputs of the prediction will be written in output-folder
+
+Note: it is assumed that csv input files have a header row as the first row
