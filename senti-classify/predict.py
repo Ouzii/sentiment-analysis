@@ -4,7 +4,6 @@ from sklearn.linear_model import LogisticRegression
 import codecs
 import numpy as np
 from argparse import ArgumentParser
-import time
 import argparse
 import re
 
@@ -18,11 +17,11 @@ def predict(lang, dims, file_path, column, as_strings):
         for l in lines:
             results.append(l)
     f.close()
-    input_file = np.loadtxt(file_path, dtype=str, delimiter=';', skiprows=1, usecols=(column,), encoding='utf8')
+    input_file = np.loadtxt(file_path, dtype=str, delimiter=';', skiprows=0, usecols=(column,), encoding='utf8')
     original_input = []
     with open(file_path, 'r', encoding='utf8') as f:
         lines = f.readlines()
-        for l in lines[1:]:
+        for l in lines:
             original_input.append(l.replace('\n', ''))
     f.close()
     features = cv.fit_transform(codecs.open(f'{dims}/traintest/{lang}/{lang}-train.txt', 'r', 'utf8'))
@@ -40,6 +39,8 @@ def predict(lang, dims, file_path, column, as_strings):
                 s = ['anger', 'anticipation', 'disgust', 'fear', 'joy', 'sadness', 'surprise', 'trust'][int(s)-1]
             else:
                 s = ['false', 'true'][int(s)]
+        if i == 0:
+            s = 'prediction'
         res.append(f'{original_input[i]};{s};\n')
     with open(f'../output/result-{file_name}.csv', 'w', encoding='utf8') as file:
         for r in res:

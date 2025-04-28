@@ -94,3 +94,6 @@ ENV/
 # mypy
 .mypy_cache/
 *.xml
+
+input/*
+output/*
