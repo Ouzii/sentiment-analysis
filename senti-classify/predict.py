@@ -6,17 +6,32 @@ import numpy as np
 from argparse import ArgumentParser
 import argparse
 import re
+cv = CountVectorizer(analyzer='word')   
 
-def predict(lang, dims, file_path, column, as_strings):
-    file_name = file_path.split('/')[-1].split('.')[0]
-    print(file_path)
-    cv = CountVectorizer(analyzer='word')   
-    results = []
+def get_data(dims, lang):
+    lang_train = cv.fit_transform(codecs.open(f'{dims}/traintest/{lang}/{lang}-train.txt', 'r', 'utf8'))
+    lang_test = cv.fit_transform(codecs.open(f'{dims}/traintest/{lang}/{lang}-test.txt', 'r', 'utf8'))
+
+    return lang_train, lang_test
+
+def get_results(dims):
+    gold_train = []
+    gold_test= []
     with open(f'{dims}/traintest/gold-train.txt', 'r') as f:
         lines = f.readlines()
         for l in lines:
-            results.append(l)
+            gold_train.append(l)
     f.close()
+
+    with open(f'{dims}/traintest/gold-test.txt', 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            gold_test.append(l)
+    f.close()
+
+    return np.array(gold_train), np.array(gold_test)
+
+def get_inputs(file_path, column):
     input_file = np.loadtxt(file_path, dtype=str, delimiter=';', skiprows=0, usecols=(column,), encoding='utf8')
     original_input = []
     with open(file_path, 'r', encoding='utf8') as f:
@@ -24,28 +39,46 @@ def predict(lang, dims, file_path, column, as_strings):
         for l in lines:
             original_input.append(l.replace('\n', ''))
     f.close()
-    features = cv.fit_transform(codecs.open(f'{dims}/traintest/{lang}/{lang}-train.txt', 'r', 'utf8'))
-    input_values = cv.transform(input_file) 
-    results = np.array(results)
-    classifier = LogisticRegression(random_state=0, solver="liblinear", max_iter=1000)
-    model = classifier.fit(features, results)
-    prediction = model.predict(input_values)
-    res = []
-    for i, item in enumerate(prediction):
-        s = f'{item}'
-        s = s.replace('\n', '')
+
+    return cv.transform(input_file), original_input
+
+def write_result(prediction, as_strings, dims, original_input, file_name):
+    multi_strings = ['anger', 'anticipation', 'disgust', 'fear', 'joy', 'sadness', 'surprise', 'trust']
+    bin_strings = ['false', 'true']
+    header = 'prediction'
+
+    def format_item(item):
+        s = f'{item}'.replace('\n', '')
         if as_strings: 
             if dims == 'multi':
-                s = ['anger', 'anticipation', 'disgust', 'fear', 'joy', 'sadness', 'surprise', 'trust'][int(s)-1]
+                return multi_strings[int(s)-1]
             else:
-                s = ['false', 'true'][int(s)]
+                return bin_strings[int(s)]
         if i == 0:
-            s = 'prediction'
-        res.append(f'{original_input[i]};{s};\n')
+            return header
+        return s
+
+    res = []
+    for i, item in enumerate(prediction):
+        res.append(f'{original_input[i]};{format_item(item)};\n')
+
     with open(f'../output/result-{file_name}.csv', 'w', encoding='utf8') as file:
         for r in res:
             file.write(r)
     file.close()
+    print(f'Result written in output/result-{file_name}.csv')
+
+def predict(lang, dims, file_path, column, as_strings):
+    file_name = file_path.split('/')[-1].split('.')[0]
+    lang_train, lang_test = get_data(dims, lang)
+    gold_train, gold_test = get_results(dims)
+    input_file, original_input = get_inputs(file_path, column)
+
+    classifier = LogisticRegression(random_state=0, solver="liblinear", max_iter=1000)
+    model = classifier.fit(lang_train, gold_train)
+    model = model.fit(lang_test, gold_test)
+    prediction = model.predict(input_file)
+    write_result(prediction, as_strings, dims, original_input, file_name)
 
 def main():
     parser = ArgumentParser()
